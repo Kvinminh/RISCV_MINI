@@ -1,0 +1,120 @@
+riscv_mini/
+│
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml                    # Auto run simulation on push
+│   │   └── lint.yml                  # Lint check (verilator/spyglass)
+│   └── PULL_REQUEST_TEMPLATE.md
+│
+├── rtl/
+│   ├── pkg/                          # Package (define trước tiên)
+│   │   ├── isa_pkg.sv                # opcodes, funct3, funct7, enums // Chương 6 (Architecture) và Phụ lục B (Appendix B - Instruction Set). Mục 6.3 (Machine Language):
+│   │   ├── ctrl_pkg.sv               # control signal structs // 7.3.2 và 7.5.2.
+│   │   └── core_pkg.sv               # pipeline register structs // 7.5  và 7.6
+│   │
+│   ├── interfaces/                   # SystemVerilog Interfaces
+│   │   ├── fetch_if.sv               # IF ↔ ID
+│   │   ├── decode_if.sv              # ID ↔ EX
+│   │   ├── execute_if.sv             # EX ↔ MEM
+│   │   ├── mem_if.sv                 # MEM ↔ WB + DMEM port
+│   │   └── reg_if.sv                 # Regfile read/write port
+│   │
+│   ├── core/
+│   │   ├── fetch/
+│   │   │   └── fetch.sv
+│   │   ├── decode/
+│   │   │   ├── decode.sv
+│   │   │   └── imm_gen.sv            # Immediate generator
+│   │   ├── execute/
+│   │   │   ├── execute.sv
+│   │   │   ├── alu.sv                # ALU 37 ops
+│   │   │   └── branch_unit.sv        # Branch condition logic
+│   │   ├── mem_access/
+│   │   │   └── mem_access.sv
+│   │   └── writeback/
+│   │       └── writeback.sv
+│   │
+│   ├── datapath/
+│   │   ├── datapath.sv               # Kết nối 5 stages
+│   │   ├── pipeline_regs.sv          # IF/ID ID/EX EX/MEM MEM/WB
+│   │   ├── regfile.sv                # x0–x31
+│   │   ├── forwarding_unit.sv        # Data forwarding
+│   │   └── hazard_unit.sv            # Stall & flush logic
+│   │
+│   ├── control/
+│   │   ├── main_ctrl.sv              # opcode → control word
+│   │   └── alu_ctrl.sv               # funct3/funct7 → alu_op
+│   │
+│   ├── memory/
+│   │   ├── imem.sv                   # Instruction memory
+│   │   └── dmem.sv                   # Data memory
+│   │
+│   └── top/
+│       └── riscv_mini_top.sv         # Top-level, kết nối tất cả
+│
+├── tb/
+│   ├── pkg/
+│   │   └── tb_pkg.sv                 # test helpers, macros
+│   │
+│   ├── unit/                         # Unit test từng module
+│   │   ├── tb_alu.sv
+│   │   ├── tb_imm_gen.sv
+│   │   ├── tb_regfile.sv
+│   │   ├── tb_fetch.sv
+│   │   ├── tb_decode.sv
+│   │   ├── tb_execute.sv
+│   │   ├── tb_mem_access.sv
+│   │   └── tb_writeback.sv
+│   │
+│   ├── integration/                  # Test pipeline đầy đủ
+│   │   ├── tb_datapath.sv
+│   │   └── tb_top.sv
+│   │
+│   └── env/                          # UVM-lite environment (optional)
+│       ├── riscv_agent.sv
+│       ├── riscv_scoreboard.sv
+│       └── riscv_env.sv
+│
+├── asm/                              # Assembly test programs
+│   ├── src/
+│   │   ├── test_alu.s                # R-type & I-type ALU
+│   │   ├── test_branch.s             # BEQ BNE BLT BGE...
+│   │   ├── test_load_store.s         # LW LH LB SW SH SB
+│   │   ├── test_jump.s               # JAL JALR
+│   │   ├── test_hazard.s             # Data & control hazard cases
+│   │   └── test_all.s                # Full regression
+│   │
+│   └── hex/                          # Compiled .hex để load vào IMEM
+│       └── .gitkeep
+│
+├── sim/
+│   ├── Makefile                      # make sim, make wave, make clean
+│   ├── filelist.f                    # danh sách file RTL theo thứ tự
+│   ├── run_vsim.sh                   # ModelSim/Questa
+│   ├── run_vcs.sh                    # Synopsys VCS
+│   ├── run_verilator.sh              # Verilator (free)
+│   └── waves/                        # Waveform output
+│       └── .gitkeep
+│
+├── syn/                              # Synthesis (Vivado / DC)
+│   ├── constraints/
+│   │   └── timing.xdc
+│   ├── scripts/
+│   │   ├── synth_vivado.tcl
+│   │   └── synth_dc.tcl
+│   └── reports/                      # Area, timing, power reports
+│       └── .gitkeep
+│
+├── docs/
+│   ├── architecture.md               # Kiến trúc tổng quan
+│   ├── pipeline.md                   # Pipeline stages chi tiết
+│   ├── isa_table.md                  # Bảng 37 lệnh đầy đủ
+│   ├── hazard_handling.md            # Forwarding & stall logic
+│   └── diagrams/
+│       ├── block_diagram.drawio
+│       └── pipeline_timing.png
+│
+├── .gitignore
+├── .editorconfig
+├── LICENSE
+└── README.md
