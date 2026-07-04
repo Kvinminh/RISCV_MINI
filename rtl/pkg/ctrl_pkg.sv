@@ -1,3 +1,6 @@
+
+
+
 package ctrl_pkg;
 import isa_pkg::*;
 // stage 1: IF
@@ -15,12 +18,12 @@ typedef enum logic [3:0]{
     IMMGEN_U = 4'b0011,
     IMMGEN_J = 4'b0100
 } immgen_sel_e;
-
-typedef enum logic [1:0]{
+    
+typedef enum logic {
     RS1_DATA = 1'b0,
     PC_CUR_ID = 1'b1
 }mux_base_e;
-
+   
 
 
 
@@ -87,3 +90,5 @@ typedef enum logic [1:0]{
 
 
 endpackage : ctrl_pkg
+
+

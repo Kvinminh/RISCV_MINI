@@ -1,4 +1,6 @@
 package core_pkg;
+
+import isa_pkg::*;
 import ctrl_pkg::*;
 
 parameter int XLEN = 32;
@@ -91,6 +93,6 @@ typedef struct packed {
     wb_ctrl_s wb_ctrl;
 }mem_wb_reg_t;
 
-
-
+    
 endpackage : core_pkg
+
