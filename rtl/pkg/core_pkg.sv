@@ -1,5 +1,8 @@
-package core_pkg;
 
+/* verilator lint_off MODDUP */
+
+package core_pkg;
+    
 import isa_pkg::*;
 import ctrl_pkg::*;
 
@@ -14,7 +17,7 @@ parameter logic [XLEN-1:0] RESET_PC = 32'h0000_0000;
 typedef struct packed {
  logic [XLEN-1:0] pc_cur;
  logic [XLEN-1:0] pc_4;
- logic [XLEN-1:0] inst;
+ logic [XLEN-1:0] ins;
 } if_id_reg_t;
 
 
@@ -95,4 +98,7 @@ typedef struct packed {
 
     
 endpackage : core_pkg
+
+
+/* verilator lint_on MODDUP */
 

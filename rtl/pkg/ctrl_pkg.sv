@@ -1,13 +1,12 @@
 
-
-
+/* verilator lint_off MODDUP */
 package ctrl_pkg;
 import isa_pkg::*;
 // stage 1: IF
 
-typedef enum logic [1:0]{
-   PC4_ID = 2'b00,
-   PC_JUMP_ID = 2'b01
+typedef enum logic {
+   PC4_ID = 1'b0,
+   PC_JUMP_ID = 1'b1
 }pc_sel_e;
 
 // stage 2: ID
@@ -73,8 +72,6 @@ typedef enum logic [1:0]{
 }forward_b_e;
 
 
-
-
 // stage 4: MEM
 typedef enum logic [1:0] {
     DEV_SRAM = 2'b00,
@@ -90,5 +87,7 @@ typedef enum logic [1:0]{
 
 
 endpackage : ctrl_pkg
+
+/* verilator lint_on MODDUP */
 
 

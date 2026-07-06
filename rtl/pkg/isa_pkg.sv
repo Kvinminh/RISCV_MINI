@@ -1,3 +1,7 @@
+
+
+
+/* verilator lint_off MODDUP */
 package isa_pkg;
 
 ///////////////////////////// 
@@ -185,6 +189,4 @@ typedef enum logic [4:0] {
 
 
 endpackage : isa_pkg
-
-
-
+/* verilator lint_on MODDUP */
