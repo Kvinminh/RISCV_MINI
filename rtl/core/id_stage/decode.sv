@@ -6,11 +6,14 @@ module decode
     input  logic [XLEN-1:0] ins,
     output decode_s         deco,
     output logic rs1_used_id,
-    output logic rs2_used_id
-    output logic is_br_jalr_id
+    output logic rs2_used_id,
+    output logic take_jump_id,
+    output logic extension_ex
 );
   logic [6:0] opcode;
+  logic [2:0] f3;
   assign opcode = ins[6:0];
+  assign f3 = ins[14:12];
   always_comb begin
     // Default an toàn, tránh latch inference
     deco = '0;
@@ -44,7 +47,7 @@ module decode
         deco.ex_ctrl.sel_b          = IMM_EX;
         deco.ex_ctrl.alu_op         = ALU_ADD_SUB;
         deco.mem_ctrl.dmem_re       = 1'b1;
-        deco.mem_ctrl.extension_mem = 1'b1; // funct3 (lb/lh/lw) cần forward riêng xuống MEM
+        //deco.mem_ctrl.extension_ex_mem = 1'b1; // funct3 (lb/lh/lw) cần forward riêng xuống MEM
         deco.wb_ctrl.reg_en         = 1'b1;
         deco.wb_ctrl.sel_wb         = MEM_RDATA;
       end
@@ -149,7 +152,11 @@ module decode
   end
 
 
+ 
+  assign take_jump_id = ( deco.jalr_en || deco.jal_en );
 
-  assign take_jump_id = ( deco.jalr_en || deco.jal_en || deco.br_en);
+  
+  logic extensin;
+  assign extension_ex = ( opcode == OPCODE_LOAD) && !ins[14];
 
 endmodule

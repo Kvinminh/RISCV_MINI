@@ -5,9 +5,9 @@ import isa_pkg::*;
 (
     input  logic [31:0] jump_adder_a,
     input  logic [31:0] jump_adder_b,
-    output logic [31:0] addr_if_jump
+    output logic [31:0] pc_jump_id
 );
 
-   assign addr_if_jump = jump_adder_a + jump_adder_b;
+   assign pc_jump_id = jump_adder_a + jump_adder_b;
 
 endmodule

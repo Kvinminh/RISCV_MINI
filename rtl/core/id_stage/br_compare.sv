@@ -5,7 +5,7 @@ module br_compare
 (
     input  logic [XLEN-1:0] operand_a_id,
     input  logic [XLEN-1:0] operand_b_id,
-    input  b_type_f3_e      f3,
+    input  b_type_f3_e      f3_br,
     input  logic            br_en,
     output logic            br_taken
 );

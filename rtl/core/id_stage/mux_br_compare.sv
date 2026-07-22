@@ -1,4 +1,4 @@
-module mux_forward_id
+module mux_br_compare // dùng forward
 import ctrl_pkg::*;
 import core_pkg::*;
 import isa_pkg::*;   // để dùng XLEN
@@ -18,7 +18,7 @@ import isa_pkg::*;   // để dùng XLEN
     // Mux chọn nguồn cho operand A (rs1)
     always_comb begin : mux_operand_a
          case (forward_id_a)
-            RS_ID  : operand_a_id = rs1_data_id;
+            RS1_ID  : operand_a_id = rs1_data_id;
             RD_EX  : operand_a_id = alu_result_ex;
             RD_MEM : operand_a_id = wb_data_mem;
             default: operand_a_id = rs1_data_id;
@@ -28,7 +28,7 @@ import isa_pkg::*;   // để dùng XLEN
     // Mux chọn nguồn cho operand B (rs2)
     always_comb begin : mux_operand_b
          case (forward_id_b)
-            RS_ID  : operand_b_id = rs2_data_id;
+            RS2_ID  : operand_b_id = rs2_data_id;
             RD_EX  : operand_b_id = alu_result_ex;
             RD_MEM : operand_b_id = wb_data_mem;
             default: operand_b_id = rs2_data_id;

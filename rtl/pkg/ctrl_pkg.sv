@@ -10,6 +10,27 @@ typedef enum logic {
 }pc_sel_e;
 
 // stage 2: ID
+
+
+typedef enum logic [1:0] { 
+    RS1_ID = 2'b00,
+    RD_EX  =2'b01,
+    RD_MEM  =2'b10,
+    RS2_ID = 2'b11
+} for_sel_e;
+
+// typedef enum logic [1:0] { 
+//     RS2_ID = 2'b00,
+//     RD_EX  = 2'b01,
+//     RD_MEM  = 2'b10
+// }  sel_for_id_n;
+
+
+
+
+
+
+
 typedef enum logic [3:0]{
     IMMGEN_I = 4'b0000,
     IMMGEN_S = 4'b0001,
@@ -28,10 +49,10 @@ typedef enum logic {
 
 // stage 3: EX
 typedef enum logic [1:0]{
-    ALU_ADD_SUB = 2'b00, // Load, Store, JAL, JALR, AUIPC, LUI
-    ALU_ITYPE     = 2'b01,// R-type (cần funct3 + funct7[5])
-    ALU_RTYPE     = 2'b10// I-type ALU (cần funct3, funct7[5] chỉ dùng cho SRAI)
-} alu_op_e; 
+    ALU_ADD_SUB = 2'b00,
+    ALU_RTYPE   = 2'b01, // R-type: cần f3 + f7[5]
+    ALU_ITYPE   = 2'b10  // I-type ALU: chỉ cần f3, f7[5] dùng cho SRAI
+} alu_op_e;
 
 typedef enum logic [3:0]{
     ALU_ADD = 4'b0000,
@@ -48,9 +69,11 @@ typedef enum logic [3:0]{
 
 
 typedef enum logic [1:0] {
-    RS1_EX = 2'b00,
-    PC_CUR_EX = 2'b01
+    RS1_EX    = 2'b00,
+    PC_CUR_EX = 2'b01,
+    ZERO_EX   = 2'b10   // added: cần cho LUI (rd = 0 + imm)
 }sel_a_decode_e;
+
 
 typedef enum logic [1:0] {
     RS2_EX = 2'b00,
@@ -59,31 +82,51 @@ typedef enum logic [1:0] {
 
 
 typedef enum logic [1:0]{
-    A_BASE_EX = 2'b00,
-    A_EX_MEM = 2'b01,
-    A_MEM_WB = 2'b10
-}forward_a_e;
+    RS_EX_EX = 2'b00,
+    RD_MEM_EX = 2'b01,
+    RD_WB_EX = 2'b10
+}forward_e;
 
 
-typedef enum logic [1:0]{
-    B_BASE_EX = 2'b00,
-    B_EX_MEM = 2'b01,
-    B_MEM_WB = 2'b10
-}forward_b_e;
+// typedef enum logic [1:0]{
+//     B_BASE_EX = 2'b00,
+//     B_EX_MEM = 2'b01,
+//     B_MEM_WB = 2'b10
+// }forward_b_e;
 
 
 // stage 4: MEM
-typedef enum logic [1:0] {
-    DEV_SRAM = 2'b00,
-    DEV_UART = 2'b01
-    // DEV_GPIO, DEV_TIMER... sau này
-} mem_dev_e;
 
 typedef enum logic [1:0]{
     PC4_MEM = 2'b00,
     ALU_MEM = 2'b01,
     MEM_RDATA = 2'b10
 }wb_sel_e;
+
+
+    typedef enum logic [7:0] {
+        // Trạng thái mặc định (Không chọn thiết bị / Địa chỉ lỗi)
+        DEV_NONE = 8'h00,
+
+        // --- NHÓM BỘ NHỚ (Memory - Dải 0x01 đến 0x0F) ---
+        DEV_SRAM = 8'h01,
+        DEV_ROM  = 8'h02, // Dự phòng cho Boot ROM / Flash
+        
+        // --- NHÓM GIAO TIẾP (Comms - Dải 0x10 đến 0x1F) ---
+        DEV_UART = 8'h10,
+        DEV_SPI  = 8'h11,
+        DEV_I2C  = 8'h12, // Dự phòng thêm giao tiếp I2C
+        
+        // --- NHÓM ĐIỀU KHIỂN & ĐỊNH THỜI (Control & Timers - Dải 0x20 đến 0x2F) ---
+        DEV_GPIO = 8'h20,
+        DEV_TMR  = 8'h21,
+        DEV_PWM  = 8'h22, // Dự phòng cho bộ phát xung PWM
+        
+        // --- NHÓM HỆ THỐNG (System - Dải 0xF0 đến 0xFF) ---
+        DEV_PLIC = 8'hF0  // Dự phòng cho Bộ điều khiển Ngắt (Interrupt Controller)
+        
+    } dev_sel_e;
+
 
 
 endpackage : ctrl_pkg

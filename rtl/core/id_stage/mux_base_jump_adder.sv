@@ -1,4 +1,4 @@
-module mux_jump_adder
+module mux_base_jump_adder
   import isa_pkg::*;
   import ctrl_pkg::*;
   import core_pkg::*;

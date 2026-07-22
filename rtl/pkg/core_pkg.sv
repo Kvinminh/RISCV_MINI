@@ -11,6 +11,7 @@ parameter int REG_ADDR_W = 5;
 parameter int NUM_REGS = 32;
 parameter int F3 = 3;
 parameter logic [XLEN-1:0] RESET_PC = 32'h0000_0000;
+parameter logic [XLEN-1:0] NOP = 32'h00000013; // addi x0, x0, 0
 
 // stage 1: IF
 
@@ -33,7 +34,6 @@ typedef struct packed{
 typedef struct packed{
     logic dmem_re;
     logic dmem_wri;
-    logic extension_mem;
 } mem_ctrl_s;
 
 
@@ -47,6 +47,7 @@ typedef struct packed{
     logic br_en;
     logic jal_en;
     logic jalr_en;
+    logic extension_ex;
     immgen_sel_e imm_sel;
     ex_ctrl_s ex_ctrl;
     mem_ctrl_s mem_ctrl;
@@ -71,6 +72,7 @@ typedef struct packed{
     
     ex_ctrl_s ex_ctrl;
     mem_ctrl_s mem_ctrl;
+    logic      extension;
     wb_ctrl_s wb_ctrl; 
 }id_ex_reg_t;
 
@@ -78,22 +80,23 @@ typedef struct packed{
 
 // stage 3: EX
 typedef struct packed {
-    logic [XLEN-1:0] pc_4;
-    logic [XLEN-1:0] alu_result;
-    logic [XLEN-1:0] rs2_data;  
-    logic [REG_ADDR_W-1:0] rd_addr;
-    mem_ctrl_s mem_ctrl;
-    wb_ctrl_s wb_ctrl;
+    logic [XLEN-1:0]        pc_4;
+    logic [XLEN-1:0]        alu_result;
+    logic [XLEN-1:0]        rs2_data;  
+    logic [REG_ADDR_W-1:0]  rd_addr;
+    logic                   extension;
+    mem_ctrl_s              mem_ctrl;
+    wb_ctrl_s               wb_ctrl;
 }ex_mem_reg_t;
 
 
 // stage 4: MEM
 typedef struct packed {
-    logic [XLEN-1:0] pc_4;
-    logic [XLEN-1:0] alu_result;
-    logic [XLEN-1:0] mem_rdata;
-    logic [REG_ADDR_W-1:0] rd_addr;
-    wb_ctrl_s wb_ctrl;
+    logic [XLEN-1:0]        pc_4;
+    logic [XLEN-1:0]        alu_result;
+    logic [XLEN-1:0]        mem_rdata;
+    logic [REG_ADDR_W-1:0]  rd_addr;
+    wb_ctrl_s               wb_ctrl;
 }mem_wb_reg_t;
 
     

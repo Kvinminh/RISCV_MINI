@@ -18,11 +18,10 @@ import core_pkg::*;
     logic [XLEN-1:0] mem_reg [0: XLEN-1];
 
     integer i;
-    always_ff @( posedge clk  or negedge rst_n) begin : blockName
-    end begin 
+    always_ff @( posedge clk  or negedge rst_n) begin 
         if ( !rst_n) begin 
             for ( i = 0; i < XLEN; i =i + 1 ) begin 
-                mem_reg[i] = '0;
+                mem_reg[i] <= '0;
             end
         end
         else begin
@@ -47,4 +46,3 @@ import core_pkg::*;
     end
 
 endmodule
-

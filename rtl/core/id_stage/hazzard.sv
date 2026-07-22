@@ -1,12 +1,12 @@
 module hazzard 
 import core_pkg::*;
 (
-    input loigc [REG_ADDR_W-1:0] rs1_addr_id,
+    input logic [REG_ADDR_W-1:0] rs1_addr_id,
     input logic [REG_ADDR_W-1:0] rs2_addr_id,
     input logic                  rs1_used_id,
     input logic                  rs2_used_id,
 
-    input logic                  jump_id,       // jal || jalr từ decode
+    input logic                  take_jump_id,       // jal || jalr từ decode
     input logic                  br_en_id,       //          từ doecode
     input logic                  br_taken,      // từ br_compare
 

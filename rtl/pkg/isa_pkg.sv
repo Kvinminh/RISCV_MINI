@@ -135,7 +135,7 @@ typedef struct packed {
          b_type_t b_type;
          u_type_t u_type;
          j_type_t j_type;
-      } instr_format_u;
+      } instr_fomat_u;
 
 
 
