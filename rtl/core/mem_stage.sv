@@ -1,28 +1,19 @@
-/* verilator lint_off MODDUP */
 module mem_stage
     import core_pkg::*;
     import ctrl_pkg::*;
     import isa_pkg::*;
 (
     input  logic         clk,
-
-    // Thanh ghi pipeline EX/MEM đưa vào
-    input  ex_mem_reg_t  ex_mem_reg_i,
-
-    // 2 tín hiệu này KHÔNG có trong ex_mem_reg_t hiện tại,
-    // cần forward riêng từ ID/EX (hoặc bổ sung field vào ex_mem_reg_t)
-    input  i_type_load_f3_e f3_mem_i,
-    input  logic             extension_mem_i,
-
-    // Kết quả ra cho thanh ghi MEM/WB
-    output mem_wb_reg_t  mem_wb_reg_o
+    input  ex_mem_reg_t  reg_mem_i,
+    output mem_wb_reg_t  mem_reg_o,
+    output for_info_t    for_mem_reg_o
 );
 
-    // ------------------------------------------------------------
-    // Tín hiệu nội bộ
-    // ------------------------------------------------------------
-    logic [3:0]   mask;
+    //=========================================================
+    // Internal nets
+    //=========================================================
     dev_sel_e     dev_sel;
+    logic [3:0]   mask;
 
     logic [31:0]  sram_wdata;
     logic [3:0]   sram_mask;
@@ -31,105 +22,113 @@ module mem_stage
 
     logic [7:0]   uart_tx_data;
     logic         uart_tx_valid;
-    logic [31:0]  uart_status_rdata;
+    logic [31:0]  uart_rdata;
 
     logic [31:0]  mem_rdata_raw;
     logic [31:0]  mem_rdata;
 
-    // ------------------------------------------------------------
-    // 1. Giải mã địa chỉ -> chọn thiết bị (SRAM / UART / ...)
-    // ------------------------------------------------------------
-    addr_deco u_addr_deco (
-        .alu_result_mem (ex_mem_reg_i.alu_result),
-        .mem_re_mem     (ex_mem_reg_i.mem_ctrl.dmem_re),
-        .mem_wri_mem    (ex_mem_reg_i.mem_ctrl.dmem_wri),
-        .dev_sel        (dev_sel)
+    //=========================================================
+    // 1. Address Decoder
+    //=========================================================
+    addres_decodet u_addres_decodet (
+        .alu_result_i (reg_mem_i.alu),
+        .mem_re       (reg_mem_i.mem_ctrl.dmem_re),
+        .mem_wri      (reg_mem_i.mem_ctrl.dmem_wri),
+        .dev_sel_o    (dev_sel)
     );
 
-    // ------------------------------------------------------------
-    // 2. Sinh mask (byte enable) dựa vào funct3 + 2 bit offset địa chỉ
-    // ------------------------------------------------------------
+    //=========================================================
+    // 2. LSU Ctrl -> sinh mask (byte enable)
+    //=========================================================
     lsu_ctrl u_lsu_ctrl (
-        .f3_mem         (f3_mem_i),
-        .alu_result_mem (ex_mem_reg_i.alu_result[1:0]),
-        .mask           (mask)
+        .f3_mem_i     (reg_mem_i.f3),
+        .alu_result_i (reg_mem_i.alu[1:0]),
+        .mask_o       (mask)
     );
 
-    // ------------------------------------------------------------
-    // 3. Store unit: căn chỉnh dữ liệu ghi + định tuyến we/valid
-    // ------------------------------------------------------------
+    //=========================================================
+    // 3. Store Unit
+    //=========================================================
     store_unit u_store_unit (
-        .rs2_data_mem   (ex_mem_reg_i.rs2_data),
-        .f3_mem         (f3_mem_i),
-        .alu_result_mem (ex_mem_reg_i.alu_result),
-        .mem_wri_mem    (ex_mem_reg_i.mem_ctrl.dmem_wri),
-        .mask           (mask),
-        .dev_sel        (dev_sel),
+        .rs2_data_i     (reg_mem_i.rs2_data),
+        // .f3_i           (reg_mem_i.f3),
+        .alu_result_i   (reg_mem_i.alu),
+        .mem_wri_i      (reg_mem_i.mem_ctrl.dmem_wri),
+        .mask_i         (mask),
+        .dev_sel_i      (dev_sel),
 
-        .sram_wdata     (sram_wdata),
-        .sram_mask      (sram_mask),
-        .sram_we        (sram_we),
+        .sram_wdata_o   (sram_wdata),
+        .sram_mask_o    (sram_mask),
+        .sram_we_o      (sram_we),
 
-        .uart_tx_data   (uart_tx_data),
-        .uart_tx_valid  (uart_tx_valid)
+        .uart_tx_data_o (uart_tx_data),
+        .uart_tx_valid_o(uart_tx_valid)
     );
 
-    // ------------------------------------------------------------
+    //=========================================================
     // 4. SRAM lý tưởng
-    //    (đã sửa: cổng dev_sel của sram_ideal giờ là dev_sel_e, nối thẳng)
-    // ------------------------------------------------------------
-    sram_ideal #(
+    //=========================================================
+    sram #(
         .DEPTH (1024)
     ) u_sram_ideal (
-        .clk        (clk),
-        .addr       (ex_mem_reg_i.alu_result),
-        .sram_wdata (sram_wdata),
-        .sram_mask  (sram_mask),
-        .sram_we    (sram_we),
-        .dev_sel    (dev_sel),
-        .rdata      (sram_rdata)
+        .clk          (clk),
+        .addr         (reg_mem_i.alu),
+        .sram_wdata_i (sram_wdata),
+        .sram_mask_i  (sram_mask),
+        .sram_we_i    (sram_we),
+        .dev_sel_i    (dev_sel),
+        .rdata_o      (sram_rdata)
     );
 
-    // ------------------------------------------------------------
+    //=========================================================
     // 5. UART lý tưởng
-    // ------------------------------------------------------------
-    uart_ideal u_uart_ideal (
-        .clk      (clk),
-        .tx_data  (uart_tx_data),
-        .tx_valid (uart_tx_valid),
-        .rdata    (uart_status_rdata)
+    //=========================================================
+    uart u_uart (
+        .clk         (clk),
+        .tx_data_i   (uart_tx_data),
+        .tx_valid_i  (uart_tx_valid),
+        .uart_rdata_o(uart_rdata)
     );
 
-    // ------------------------------------------------------------
-    // 6. Mux chọn dữ liệu đọc thô theo dev_sel
-    // ------------------------------------------------------------
+    //=========================================================
+    // 6. Read Data Mux
+    //=========================================================
     read_data_mux u_read_data_mux (
-        .sram_rdata    (sram_rdata),
-        .status_rdata  (uart_status_rdata),
-        .dev_sel       (dev_sel),
-        .mem_rdata_raw (mem_rdata_raw)
+        .sram_rdata_i    (sram_rdata),
+        .uart_rdata_i    (uart_rdata),
+        .dev_sel_i       (dev_sel),
+        .mem_rdata_raw_o (mem_rdata_raw)
     );
 
-    // ------------------------------------------------------------
-    // 7. Load unit: căn chỉnh + sign/zero extension
-    // ------------------------------------------------------------
+    //=========================================================
+    // 7. Load Unit
+    //=========================================================
     load_unit u_load_unit (
-        .mem_rdata_raw (mem_rdata_raw),
-        .mask          (mask),
-        .extension_mem (extension_mem_i),
-        .mem_rdata     (mem_rdata)
+        .mem_rdata_raw_i (mem_rdata_raw),
+        .mask_i          (mask),
+        .extension_i     (reg_mem_i.extension),
+        .mem_rdata_o     (mem_rdata)
     );
 
-    // ------------------------------------------------------------
-    // Đóng gói kết quả cho thanh ghi MEM/WB (chưa qua flop ở đây)
-    // ------------------------------------------------------------
-    always_comb begin
-        mem_wb_reg_o.pc_4       = ex_mem_reg_i.pc_4;
-        mem_wb_reg_o.alu_result = ex_mem_reg_i.alu_result;
-        mem_wb_reg_o.mem_rdata  = mem_rdata;
-        mem_wb_reg_o.rd_addr    = ex_mem_reg_i.rd_addr;
-        mem_wb_reg_o.wb_ctrl    = ex_mem_reg_i.wb_ctrl;
+    //=========================================================
+    // Đóng gói MEM/WB (chưa qua flop, flop nằm ở top-level pipe reg)
+    //=========================================================
+    always_comb begin : pack_mem_wb
+        mem_reg_o.pc_4       = reg_mem_i.pc_4;
+        mem_reg_o.alu_result = reg_mem_i.alu;
+        mem_reg_o.mem_rdata  = mem_rdata;
+        mem_reg_o.rd_addr    = reg_mem_i.rd_addr;
+        mem_reg_o.wb_ctrl    = reg_mem_i.wb_ctrl;
+        
+    end
+
+    //=========================================================
+    // Forward info cho hazard/forward unit (giá trị EX->MEM stage đang chảy qua)
+    //=========================================================
+    always_comb begin : pack_for_info
+        for_mem_reg_o.rd_addr = reg_mem_i.rd_addr;
+        for_mem_reg_o.mem_re  = reg_mem_i.mem_ctrl.dmem_re;
+        for_mem_reg_o.reg_en  = reg_mem_i.wb_ctrl.reg_en;
     end
 
 endmodule
-/* verilator lint_on MODDUP */

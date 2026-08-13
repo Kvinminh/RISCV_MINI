@@ -5,7 +5,7 @@ class regfile_monitor;
     mailbox #(regfile_transaction) mon2cov;
 
     function  new(virtual regfile_if.MON vif,
-                 mailbox #(regfile_transaction) mon2sb
+                 mailbox #(regfile_transaction) mon2sb,
                 mailbox #(regfile_transaction) mon2cov);
         this.vif = vif;
         this.mon2sb = mon2sb;

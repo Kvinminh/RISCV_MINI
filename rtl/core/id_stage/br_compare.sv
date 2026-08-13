@@ -3,11 +3,11 @@ module br_compare
   import ctrl_pkg::*;
   import core_pkg::*;
 (
-    input  logic [XLEN-1:0] operand_a_id,
-    input  logic [XLEN-1:0] operand_b_id,
-    input  b_type_f3_e      f3_br,
-    input  logic            br_en,
-    output logic            br_taken
+    input  logic [XLEN-1:0] compare_a_i,
+    input  logic [XLEN-1:0] compare_b_i,
+    input  b_type_f3_e      f3_i,
+    input  logic            br_en_i,
+    output logic            br_taken_o
 );
 
     logic equal;
@@ -15,12 +15,12 @@ module br_compare
     logic less_unsigned;
     logic taken;
 
-    assign equal         = (operand_a_id == operand_b_id);
-    assign less_signed   = ($signed(operand_a_id)   < $signed(operand_b_id));
-    assign less_unsigned = (operand_a_id < operand_b_id);
+    assign equal         = (compare_a_i == compare_b_i);
+    assign less_signed   = ($signed(compare_a_i)   < $signed(compare_b_i));
+    assign less_unsigned = (compare_a_i < compare_b_i);
 
     always_comb begin
-        case (f3)
+        case (f3_i)
             F3_BEQ:  taken = equal;
             F3_BNE:  taken = !equal;
             F3_BLT:  taken = less_signed;
@@ -31,6 +31,6 @@ module br_compare
         endcase
     end
 
-    assign br_taken = br_en && taken;
+    assign br_taken_o = br_en_i && taken;
 
 endmodule

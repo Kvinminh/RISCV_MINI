@@ -1,3 +1,32 @@
-.slang/server.json
-.vscode/settings.json
-filelist.f
+# Ignore thư mục obj_dir ở bất kỳ đâu trong repo
+obj_dir/
+
+# Hoặc nếu chỉ muốn ignore obj_dir ở thư mục gốc
+/obj_dir/
+# Object files
+*.o
+
+# Build outputs
+*.elf
+*.hex
+*.mem
+*.out
+map
+
+# Verilator/simulation
+obj_dir/
+
+# File nháp/tạm
+filelist_nháp
+clean_list.f
+
+# Thư mục nháp / thử nghiệm
+test core/
+vd_tb_regfile nháp/
+
+tb/
+tb_regfile/
+
+.slang/
+.vscode/
+list_file/

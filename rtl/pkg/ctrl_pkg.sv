@@ -1,22 +1,22 @@
-
+`timescale 1ns/1ps
 /* verilator lint_off MODDUP */
 package ctrl_pkg;
 import isa_pkg::*;
 // stage 1: IF
 
 typedef enum logic {
-   PC4_ID = 1'b0,
-   PC_JUMP_ID = 1'b1
+   PC4 = 1'b0,
+   PC_JUMP = 1'b1
 }pc_sel_e;
 
 // stage 2: ID
 
 
 typedef enum logic [1:0] { 
-    RS1_ID = 2'b00,
-    RD_EX  =2'b01,
-    RD_MEM  =2'b10,
-    RS2_ID = 2'b11
+    RS1_DATA_ID = 2'b00,
+    RD_DATA_EX  =2'b01,
+    RD_DATA_MEM  =2'b10,
+    RS2_DATA_ID = 2'b11
 } for_sel_e;
 
 // typedef enum logic [1:0] { 
@@ -82,9 +82,9 @@ typedef enum logic [1:0] {
 
 
 typedef enum logic [1:0]{
-    RS_EX_EX = 2'b00,
-    RD_MEM_EX = 2'b01,
-    RD_WB_EX = 2'b10
+    RD_EX = 2'b00,
+    RD_MEM = 2'b01,
+    RD_WB = 2'b10
 }forward_e;
 
 

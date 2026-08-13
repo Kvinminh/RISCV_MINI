@@ -1,6 +1,6 @@
 
 /* verilator lint_off MODDUP */
-
+`timescale 1ns/1ps
 package core_pkg;
     
 import isa_pkg::*;
@@ -8,9 +8,9 @@ import ctrl_pkg::*;
 
 parameter int XLEN = 32;
 parameter int REG_ADDR_W = 5;
-parameter int NUM_REGS = 32;
+// parameter int NUM_REGS = 32;
 parameter int F3 = 3;
-parameter logic [XLEN-1:0] RESET_PC = 32'h0000_0000;
+
 parameter logic [XLEN-1:0] NOP = 32'h00000013; // addi x0, x0, 0
 
 // stage 1: IF
@@ -47,7 +47,7 @@ typedef struct packed{
     logic br_en;
     logic jal_en;
     logic jalr_en;
-    logic extension_ex;
+    logic extension;
     immgen_sel_e imm_sel;
     ex_ctrl_s ex_ctrl;
     mem_ctrl_s mem_ctrl;
@@ -62,7 +62,7 @@ typedef struct packed{
     logic [XLEN-1:0] pc_cur;
     logic [XLEN-1:0] pc_4;
 
-    logic [XLEN-1:0] imm;
+    logic [XLEN-1:0] imm_out;
 
     logic [REG_ADDR_W-1:0] rd_addr;
     logic [REG_ADDR_W-1:0] rs1_addr;
@@ -80,8 +80,9 @@ typedef struct packed{
 
 // stage 3: EX
 typedef struct packed {
+    logic [2:0]             f3;
     logic [XLEN-1:0]        pc_4;
-    logic [XLEN-1:0]        alu_result;
+    logic [XLEN-1:0]        alu;
     logic [XLEN-1:0]        rs2_data;  
     logic [REG_ADDR_W-1:0]  rd_addr;
     logic                   extension;
@@ -99,7 +100,45 @@ typedef struct packed {
     wb_ctrl_s               wb_ctrl;
 }mem_wb_reg_t;
 
+
+// wwb
+typedef struct packed{
+    logic reg_en;
+    logic [REG_ADDR_W-1:0] rd_addr;
+    logic [XLEN-1:0]       rd_data;
+}regfile_wb;
     
+
+// fuction \
+
+
+typedef struct packed {
+    logic [REG_ADDR_W -1:0] rd_addr;
+    logic                   mem_re;
+    logic                   reg_en;
+    //logic [XLEN-1:0]        alu;
+} for_info_t;
+
+
+typedef struct packed {
+    logic                   jal;
+    logic                   jalr;
+    logic                   br_en;
+    logic                   br_taken;
+    logic [XLEN-1:0]        jump_addr;
+} jump_t;
+
+
+typedef struct packed{
+    logic                   stall_pc;
+    logic                   stall_if_id;
+    logic                   flush_if_id;
+    logic                   flush_id_ex;
+} hzd_ctrl_t;
+
+
+
+
 endpackage : core_pkg
 
 

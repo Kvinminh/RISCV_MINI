@@ -15,7 +15,7 @@ class regfile_transaction;
                         1'b0 := 20};
     }
     
-    function void copy( regfile_transantion rhs);
+    function void copy( regfile_transaction rhs);
         if(rhs == null) return;
         this.rs1_addr_id = rhs.rs1_addr_id
         this.rs2_addr_id = rhs.rs2_addr_id

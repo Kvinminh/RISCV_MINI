@@ -1,5 +1,5 @@
 
-
+`timescale 1ns/1ps
 
 /* verilator lint_off MODDUP */
 package isa_pkg;
