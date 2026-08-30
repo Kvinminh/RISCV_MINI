@@ -128,7 +128,7 @@ typedef struct packed {
         logic [6:0]  opcode;
     } j_type_t;
 
-   typedef struct packed {
+   typedef union packed {
          r_type_t r_type;
          i_type_t i_type;
          s_type_t s_type;

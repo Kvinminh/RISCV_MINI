@@ -1,35 +1,5 @@
 `timescale 1ns/1ps
 
-// ============================================================================
-// tb_if_stage.sv
-// ============================================================================
-// ONE-FILE IF-STAGE VERIFICATION ENVIRONMENT
-//
-// DUT is the CURRENT rtl/core/if_stage.sv from RISCV_MINI.
-//
-// DUT ports:
-//   clk
-//   rst_n
-//   stall_pc_i
-//   jump_id_i : core_pkg::jump_t
-//   if_reg_o  : core_pkg::if_id_reg_t
-//
-// This file intentionally combines:
-//   1) DIRECT TESTING  -> explicit directed scenarios
-//   2) OOP TESTING     -> transaction/generator/driver/monitor
-//   3) REFERENCE MODEL -> expected PC calculation
-//   4) SCOREBOARD      -> DUT vs expected
-//   5) FUNCTIONAL COVERAGE
-//   6) COVERAGE REPORT
-//
-// IMPORTANT:
-// - Hazard/forwarding are NOT tested here.
-// - IF-stage coverage focuses on PC sequencing, stall, branch/JAL/JALR,
-//   jump target selection and instruction fetch.
-// - if_id_reg is NOT instantiated here because current if_stage.sv only
-//   outputs if_reg_o; if_id_reg is a separate controlpath module.
-// ============================================================================
-
 
 // ============================================================================
 // 0. PACKAGE / INTERFACE

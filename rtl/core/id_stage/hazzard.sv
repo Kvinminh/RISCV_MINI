@@ -39,8 +39,8 @@ logic rs1_ex, rs2_ex, rs1_mem,rs2_mem;
         rs1_ex = (rs1_used_i) && (for_info_ex_i.reg_en) && (for_info_ex_i.rd_addr != 5'b0) && (for_info_ex_i.rd_addr == rs1_addr_i);
         rs2_ex = (rs2_used_i) && (for_info_ex_i.reg_en) && (for_info_ex_i.rd_addr != 5'b0) && (for_info_ex_i.rd_addr == rs2_addr_i);
 
-        rs1_mem = (rs1_used_i) && (for_info_mem_i.reg_en) && ( for_info_mem_i.rd_addr  != 5'b0) && (for_info_ex_i.rd_addr == rs1_addr_i);
-        rs2_mem = (rs2_used_i) && (for_info_mem_i.reg_en) && ( for_info_mem_i.rd_addr  != 5'b0) && (for_info_ex_i.rd_addr == rs2_addr_i);    
+        rs1_mem = (rs1_used_i) && (for_info_mem_i.reg_en) && (for_info_mem_i.rd_addr != 5'b0) && (for_info_mem_i.rd_addr == rs1_addr_i);
+        rs2_mem = (rs2_used_i) && (for_info_mem_i.reg_en) && (for_info_mem_i.rd_addr != 5'b0) && (for_info_mem_i.rd_addr == rs2_addr_i);
     end
 
 

@@ -11,7 +11,7 @@ instr_fomat_u ins;
 assign ins = instr_fomat_u'(ins_i);
 
 always_comb begin 
-    imm_out_o = '0;
+     imm_out_o = '0;
     case(imm_sel_i) 
         IMMGEN_I: imm_out_o = { {20{ins.i_type.imm_11_0[11]}}, ins.i_type.imm_11_0 };    
         IMMGEN_S: imm_out_o = { {20{ins.s_type.imm_11_5[6]}}, ins.s_type.imm_11_5, ins.s_type.imm_4_0 };      

@@ -12,26 +12,21 @@ logic valid_req;
 assign valid_req = mem_re || mem_wri;
 
     always_comb begin
-        dev_sel_o = DEV_NONE; // Default an toàn
+        dev_sel_o = DEV_NONE; 
 
         if (valid_req) begin
-            // LEVEL 1: TÌM QUẬN (Giải mã 4 bit cao nhất [31:28])
+           
             case (alu_result_i[31:28])
                 
-                // --- QUẬN 0: KHU BỘ NHỚ ---
+               
                 4'h0: dev_sel_o = DEV_SRAM; 
                 
-                // --- QUẬN 4: KHU NGOẠI VI (Chứa tất cả IO) ---
+                
                 4'h4: begin 
-                    // LEVEL 2: TÌM SỐ NHÀ (Giải mã các bit thấp, VD [15:12])
+                    
                     case (alu_result_i[15:12])
                         4'h0: dev_sel_o = DEV_UART; // 0x4000_0...
                         4'h1: dev_sel_o = DEV_GPIO; // 0x4000_1...
-                        
-                        // Sau này thêm SPI, I2C, Timer... chỉ cần gõ thêm 1 dòng ở đây!
-                        // 4'h2: dev_sel_o = DEV_SPI; 
-                        // 4'h3: dev_sel_o = DEV_TIMER;
-                        
                         default: dev_sel_o = DEV_NONE;
                     endcase
                 end
@@ -40,7 +35,4 @@ assign valid_req = mem_re || mem_wri;
             endcase
         end
     end
-
-
-
 endmodule

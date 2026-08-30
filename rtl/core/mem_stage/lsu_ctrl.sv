@@ -20,10 +20,10 @@ always_comb begin
             endcase
         end
         F3_LH, F3_LHU: begin
-            // Chỉ xét bit [1] vì mặc định bit [0] = 0 (Aligned)
+           
             case (alu_result_i[1])
-                1'b0: mask_o = 4'b0011; // alu_result = 2'b00
-                1'b1: mask_o = 4'b1100; // alu_result = 2'b10
+                1'b0: mask_o = 4'b0011; 
+                1'b1: mask_o = 4'b1100; 
             endcase
         end
         F3_LW: mask_o = 4'b1111;

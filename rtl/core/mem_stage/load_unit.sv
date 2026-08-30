@@ -6,9 +6,9 @@ module load_unit (
     output logic [31:0] mem_rdata_o
 );
 
-    logic [31:0] aligned_data; // Dữ liệu đã dịch về đúng vị trí (nhưng chưa mở rộng)
+    logic [31:0] aligned_data; 
 
-    // Bước 1: Trích xuất và dịch dữ liệu về vị trí bit [0] dựa vào mask_i
+
     always_comb begin
         case (mask_i)
             // Load Byte (Cắt 8 bit)
@@ -23,33 +23,26 @@ module load_unit (
             
             // Load Word (Lấy cả 32 bit)
             4'b1111: aligned_data = mem_rdata_raw_i;
-            
-            // Default
             default: aligned_data = 32'h0;
         endcase
     end
 
-    // Bước 2: Xử lý Sign Extension / Zero Extension
+    
     always_comb begin
-        // Mặc định là Zero Extension (Vì bước 1 ta đã chèn số 0 vào các bit cao)
+        
         mem_rdata_o = aligned_data; 
 
-        // Nếu CPU yêu cầu Sign Extension (các lệnh lb, lh)
+       
         if (extension_i == 1'b1) begin
-            case (mask_i)
-                // Các trường hợp Load Byte -> Kiểm tra bit dấu ở vị trí bit [7]
+            case (mask_i)              
                 4'b0001, 4'b0010, 4'b0100, 4'b1000: begin
                     if (aligned_data[7]) 
                         mem_rdata_o = {24'hFF_FFFF, aligned_data[7:0]};
-                end
-                
-                // Các trường hợp Load Halfword -> Kiểm tra bit dấu ở vị trí bit [15]
+               end                        
                 4'b0011, 4'b1100: begin
                     if (aligned_data[15]) 
                         mem_rdata_o = {16'hFFFF, aligned_data[15:0]};
-                end
-                
-                // Load Word thì không cần mở rộng dấu
+                end             
                 default: mem_rdata_o = aligned_data;
             endcase
         end

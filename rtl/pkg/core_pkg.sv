@@ -90,6 +90,12 @@ typedef struct packed {
     wb_ctrl_s               wb_ctrl;
 }ex_mem_reg_t;
 
+// typedef struct packed {
+//     logic [REG_ADDR_W -1:0] rd_addr;
+//     logic                   mem_re;
+//     logic                   reg_en;
+//     //logic [XLEN-1:0]        alu;
+// } for_info_t;
 
 // stage 4: MEM
 typedef struct packed {

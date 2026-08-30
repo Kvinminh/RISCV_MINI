@@ -47,7 +47,7 @@ module decode
         deco_o.ex_ctrl.sel_b          = IMM_EX;
         deco_o.ex_ctrl.alu_op         = ALU_ADD_SUB;
         deco_o.mem_ctrl.dmem_re       = 1'b1;
-        //deco_o.mem_ctrl.extension_ex_mem = 1'b1; // funct3 (lb/lh/lw) cần forward riêng xuống MEM
+        deco_o.extension              = !ins_i[14];// funct3 (lb/lh/lw) cần forward riêng xuống MEM
         deco_o.wb_ctrl.reg_en         = 1'b1;
         deco_o.wb_ctrl.sel_wb         = MEM_RDATA;
       end
@@ -157,6 +157,6 @@ module decode
 
   
   
-  assign deco_o.extension = ( opcode == OPCODE_LOAD) && !ins_i[14];
+  //assign deco_o.extension = ( opcode == OPCODE_LOAD) && !ins_i[14];
 
 endmodule
