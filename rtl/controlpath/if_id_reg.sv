@@ -1,4 +1,4 @@
-module if_reg_id_reg
+module if_id_reg
     import core_pkg::*;
 (
     input  logic         clk,

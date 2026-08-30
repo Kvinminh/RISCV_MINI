@@ -12,8 +12,8 @@ logic [XLEN-1:0] wb_data;
 
     mux_wb u_mux_wb( 
         .pc4_i(wb_i.pc_4),
-        .mem_rdata_i(wb_i.alu_result),
-        .alu_i(wb_i.mem_rdata),
+        .mem_rdata_i(wb_i.mem_rdata),
+        .alu_i(wb_i.alu_result),
         .wb_sel_i(wb_i.wb_ctrl.sel_wb),
         .wb_data_o(wb_data)
     );
