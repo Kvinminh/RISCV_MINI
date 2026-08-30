@@ -1,113 +1,105 @@
-# RV32I Pipelined RISC-V CPU
+# RISCV_MINI — RV32I 5-Stage Pipelined CPU
 
-> A modular five-stage RISC-V CPU written in SystemVerilog, with explicit
-> pipeline control, data forwarding, early branch resolution, memory-mapped
-> UART output, and reproducible Verilator testbenches.
-
-![SystemVerilog](https://img.shields.io/badge/HDL-SystemVerilog-1687A7)
-![ISA](https://img.shields.io/badge/ISA-RV32I-6C4FBB)
-![Simulator](https://img.shields.io/badge/Simulation-Verilator-4B8BBE)
+> A solo RTL design + verification project: a SystemVerilog RV32I core with
+> explicit hazard detection, data forwarding, early branch resolution, and
+> directed testbenches with waveform-level evidence.
 
 ## Overview
 
-This project is an educational, RTL-level implementation of a 32-bit
-RISC-V-style processor. The design follows a classic five-stage pipeline:
+This is an educational, from-scratch implementation of a 32-bit RISC-V
+processor, built solo without a mentor or course framework. The goal was not
+just to make a CPU run programs, but to design and *verify* the mechanisms
+that make a pipelined CPU correct: pipeline registers, bypass/forwarding
+paths, load-use stalls, and control-hazard flushing.
 
-```text
-Instruction Fetch → Instruction Decode → Execute → Memory → Write Back
-        IF                   ID              EX        MEM        WB
+The core currently implements 37 base RV32I instructions and runs Hello World
+and Fibonacci programs end-to-end through a memory-mapped UART. It follows a
+classic five-stage pipeline:
+
+```
+IF → ID → EX → MEM → WB
 ```
 
-The main goal is to build and verify the mechanisms that make a pipelined CPU
-work correctly: pipeline registers, bypass paths, load-use stalls, control
-hazard flushing, branch operand forwarding, and memory-mapped I/O.
-
-The current implementation is intended as a bring-up and verification project,
-not yet as a complete production RV32I compliance implementation.
-
-## Highlights
-
-- 32-bit SystemVerilog RTL with a five-stage IF/ID/EX/MEM/WB datapath.
-- Separate pipeline registers: IF/ID, ID/EX, EX/MEM, and MEM/WB.
-- Register file with x0 hard-wired to zero.
-- Immediate generation for I, S, B, U, and J formats.
-- ALU control and datapath support for integer arithmetic/logical operations.
-- Decode paths for base integer instruction classes, loads/stores, branches,
-  JAL, JALR, LUI, and AUIPC.
-- EX-stage forwarding for dependent ALU operations.
-- ID-stage forwarding for branch/JALR operand resolution.
-- Load-use hazard detection that stalls PC and IF/ID, then inserts a bubble
-  into ID/EX.
-- Early branch decision in ID and wrong-path IF/ID flush.
-- Internal instruction memory and SRAM model for simulation.
-- Memory-mapped UART output at `0x4000_0000`.
-- Verilator tests for Hello World, Fibonacci, and pipeline waveform inspection.
-- Functional coverage model for IF-stage control, redirects, fetched opcode
-  classes, PC properties, and relevant cross-coverage scenarios.
+This project is intended as an RTL design + verification bring-up project,
+not yet a full RV32I compliance implementation — the "Current scope and next
+steps" section below is deliberately explicit about what is and isn't done.
 
 ## Architecture
 
-```text
-                         +-------------------------------+
-                         |            top_rtl            |
-                         +-------------------------------+
-                                         |
-    +---------+    +---------+    +---------+    +---------+    +---------+
-    |   IF    | -> |  IF/ID  | -> |   ID    | -> |  ID/EX  | -> |   EX    |
-    | PC/IMEM |    |  reg    |    | Decode  |    |  reg    |    | ALU/FWD |
-    +---------+    +---------+    | Regfile |    +---------+    +---------+
-         ^                         | Hazard  |                       |
-         |                         | Branch  |                       v
-         |                         +---------+                +-------------+
-         |                               |                    |   EX/MEM    |
-         |                         early branch               |     reg     |
-         |                         / PC redirect              +-------------+
-         +------------------------------------------------------------+
-                                                              |
-                                                              v
-                    +---------+    +---------+    +---------+    +---------+
-                    |   MEM   | -> |  MEM/WB | -> |   WB    | -> | Regfile |
-                    | SRAM/   |    |   reg   |    | WB MUX  |    | write   |
-                    | UART    |    +---------+    +---------+    +---------+
-                    +---------+
-```
+![Pipeline Architecture](doc/image/diagram.png)
 
-### Pipeline control
+**Pipeline registers:** IF/ID, ID/EX, EX/MEM, MEM/WB
+**Peripherals:** SRAM (instruction/data memory), UART (memory-mapped I/O at `0x4000_0000`)
 
-The hazard unit produces four control signals:
+### Pipeline control signals
 
 | Signal | Purpose |
-| --- | --- |
-| `stall_pc` | Holds the program counter during a data hazard. |
-| `stall_if_id` | Holds the IF/ID register so the consumer instruction remains in ID. |
-| `flush_id_ex` | Inserts a bubble into EX after a load-use stall. |
-| `flush_if_id` | Removes the wrong-path instruction after a taken branch/jump. |
+|---|---|
+| `stall_pc` | Holds the program counter during a data hazard |
+| `stall_if_id` | Holds the IF/ID register so the dependent instruction stays in ID |
+| `flush_id_ex` | Inserts a bubble into EX after a load-use stall |
+| `flush_if_id` | Removes the wrong-path instruction after a taken branch/jump |
 
-Forwarding avoids unnecessary stalls:
+### Forwarding paths
 
-```text
-MEM/WB result ─┐
-               ├──> EX forwarding mux ──> ALU operands
-EX/MEM result ─┘
+- **EX-stage forwarding** — resolves back-to-back ALU dependencies without
+  stalling, sourcing operands from EX/MEM and MEM/WB.
+- **ID-stage forwarding** — resolves branch/JALR comparator operands early
+  (in ID, not EX), which is what makes early branch resolution possible
+  without extra hazards.
 
-EX/MEM result ─┐
-               ├──> ID forwarding mux ──> branch/JALR comparator
-MEM result    ─┘
-```
+## Waveform evidence
+
+Captured from the pipeline demo testbench in GTKWave. This directed test
+creates, in sequence: an ALU dependency resolved by EX forwarding, a
+load-use dependency that forces a stall + bubble, and a branch whose
+operands are forwarded into ID and whose wrong-path instruction gets
+flushed.
+
+### 1. Load-use hazard — stall and flush
+
+![Load-use hazard: stall_pc, stall_if_id, flush_id_ex](doc/image/harard.png)
+
+At the point where instruction `001E8F13` depends on a value from the
+instruction immediately before it (a load), `stall_pc` and `stall_if_id`
+assert for one cycle to hold the pipeline in place, and `flush_id_ex`
+asserts on the following cycle to insert a bubble into EX — preventing the
+dependent instruction from reading a stale register value.
+
+### 2. ID-stage forwarding — branch operand resolution
+
+![ID-stage forwarding into the branch comparator](doc/image/forward_id.png)
+
+`for_id_a` and `for_id_b` show the forwarding-mux select signals feeding the
+branch comparator. At the directed `beq x31, x8` test point: `for_id_a = 10`
+(operand forwarded from MEM) and `for_id_b = 01` (operand forwarded from
+EX), giving `compare_a = compare_b = 0x1A`, so the branch resolves taken —
+demonstrating that early (ID-stage) branch resolution works correctly even
+when the branch depends on very recently produced results.
+
+### 3. EX-stage forwarding — ALU operand bypass
+
+![EX-stage forwarding into the ALU](doc/image/forward_ex.png)
+
+`for_ex_a` / `for_ex_b` show the ALU forwarding-mux selects. The trace shows
+`alu_ex`, `alu_mem`, and `alu_wb` values threading through the pipeline
+registers, confirming that a result produced by one instruction is bypassed
+directly to a dependent instruction in EX the very next cycle — no stall
+needed for this class of hazard.
 
 ## Repository layout
 
-```text
+```
 .
 ├── rtl/
 │   ├── core/
 │   │   ├── if_stage/          # PC, PC mux, instruction memory
-│   │   ├── id_stage/          # Decode, regfile, hazard and ID forwarding
-│   │   ├── ex_stage/          # ALU, ALU control and EX forwarding
-│   │   ├── mem_stage/         # SRAM, load/store units and UART
+│   │   ├── id_stage/          # Decode, regfile, hazard unit, ID forwarding
+│   │   ├── ex_stage/          # ALU, ALU control, EX forwarding
+│   │   ├── mem_stage/         # SRAM, load/store units, UART
 │   │   ├── wb_stage/          # Write-back mux
 │   │   └── top_rtl.sv         # Processor integration top
-│   ├── controlpath/           # Pipeline-register modules
+│   ├── controlpath/           # Pipeline register modules
 │   └── pkg/                   # ISA, control, and shared type packages
 ├── tb/
 │   ├── tb_hello_world_top.sv
@@ -120,33 +112,27 @@ MEM result    ─┘
 ├── program_hello.mem
 ├── program_fibonacci.mem
 ├── program_pipeline_demo.mem
-└── docs/images/               # Add captured GTKWave images here
+└── doc/image/                 # Diagram + waveform captures used in this README
 ```
 
 ## Prerequisites
 
-The examples below assume Ubuntu/WSL.
+Tested on Ubuntu/WSL.
 
 ```bash
 sudo apt update
 sudo apt install -y verilator gtkwave make g++
-```
-
-Check the installation:
-
-```bash
 verilator --version
 gtkwave --version
 ```
 
 ## Running the simulations
 
-Each test uses a dedicated build directory so simulator artifacts do not
-overwrite one another.
+Each test uses its own build directory so simulator artifacts don't collide.
 
 ### 1. Hello World
 
-The program writes `Hello World!` through the memory-mapped UART.
+Writes `Hello World!` through the memory-mapped UART.
 
 ```bash
 verilator --binary --timing -Wall -Wno-fatal -sv \
@@ -157,16 +143,16 @@ verilator --binary --timing -Wall -Wno-fatal -sv \
 ```
 
 Expected output:
-
-```text
+```
 Hello World!
 [TB][PASS] UART printed: Hello World!
 ```
 
 ### 2. Fibonacci
 
-The program calculates and prints the first seven Fibonacci values. It
-exercises arithmetic, forwarding, a decrementing loop, `BNE`, and UART stores.
+Computes and prints the first seven Fibonacci numbers, exercising
+arithmetic, register dependencies, a decrementing loop, `BNE`, and UART
+stores.
 
 ```bash
 verilator --binary --timing -Wall -Wno-fatal -sv \
@@ -177,21 +163,14 @@ verilator --binary --timing -Wall -Wno-fatal -sv \
 ```
 
 Expected output:
-
-```text
+```
 0 1 1 2 3 5 8
 [TB][PASS] Fibonacci UART output: 0 1 1 2 3 5 8
 ```
 
-### 3. Pipeline hazard, forwarding, and early-branch waveform demo
+### 3. Pipeline hazard / forwarding / early-branch demo
 
-This is the recommended demonstration for design reviews and the README. It
-uses a directed instruction sequence that creates:
-
-1. An ALU dependency resolved through EX forwarding.
-2. A load-use dependency that causes a stall and an ID/EX bubble.
-3. A branch whose operands are forwarded into ID; the taken branch flushes the
-   wrong-path instruction.
+The directed test behind the waveforms above.
 
 ```bash
 verilator --binary --timing --trace --trace-structs -Wall -Wno-fatal -sv \
@@ -202,140 +181,74 @@ verilator --binary --timing --trace --trace-structs -Wall -Wno-fatal -sv \
 gtkwave pipeline_demo.vcd
 ```
 
-The test passes only when the UART emits `P` (the wrong-path `X` store must be
-flushed) and the checked register results are correct.
-
-## Waveform evidence
-
-Save the GTKWave screenshots under `docs/images/` and uncomment/update these
-links before publishing.
-
-```markdown
-![Load-use hazard and EX forwarding](docs/images/hazard-forwarding.png)
-![ID-stage forwarding and early branch](docs/images/early-branch.png)
-```
-
-For a concise, review-friendly hazard/forwarding image, include:
-
-```text
-clk rst_n pc_if instr_if instr_id
-stall_pc stall_if_id flush_id_ex
-forward_ex_a forward_ex_b
-alu_ex alu_mem alu_wb
-x6_t1 x7_t2 x28_t3 x29_t4 x30_t5
-```
-
-For early branch resolution, include:
-
-```text
-pc_if instr_id
-forward_id_a forward_id_b
-branch_enable branch_taken branch_target flush_if_id
-```
-
-At the `beq x31, x8` directed test point, the expected ID forwarding behavior
-is:
-
-```text
-for_id_a = 2'b10  # operand x31 forwarded from MEM
-for_id_b = 2'b01  # operand x8 forwarded from EX
-compare_a = 32'd26
-compare_b = 32'd26
-branch_taken = 1'b1
-```
+The test passes only when the UART emits `P` (the wrong-path `X` store must
+be flushed) and all checked register results are correct.
 
 ## Verification strategy
 
 | Test | What it checks | Result |
-| --- | --- | --- |
-| Hello World | Reset, instruction fetch, ALU/write-back path, UART store | Passed in Verilator |
-| Fibonacci | Arithmetic loop, register dependencies, `BNE`, UART stores | Directed regression test |
-| Pipeline demo | EX forwarding, load-use stall, ID forwarding, early branch flush | Directed VCD waveform test |
-
-The testbench checks UART output and selected architectural register values.
-The waveform demo also makes internal control signals visible for manual RTL
-review.
+|---|---|---|
+| Hello World | Reset, fetch, ALU/write-back path, UART store | Passed |
+| Fibonacci | Arithmetic loop, register dependencies, `BNE`, UART stores | Passed (directed regression) |
+| Pipeline demo | EX forwarding, load-use stall, ID forwarding, branch flush | Passed (waveform evidence above) |
 
 ### Functional coverage
 
-The repository also includes a transaction-based functional coverage model for
-the IF-stage verification environment (`if_stage_coverage`). It samples the
-following behavior:
+The repository also includes a transaction-based functional coverage model
+for the IF-stage verification environment (`if_stage_coverage`):
 
 | Coverage area | Examples |
-| --- | --- |
-| Control | PC stall, branch enable/taken, JAL, JALR, redirect/no-redirect |
-| Cross coverage | stall × redirect and branch-enable × branch-taken |
+|---|---|
+| Control | PC stall, branch enable/taken, JAL, JALR, redirect vs. no-redirect |
+| Cross coverage | stall × redirect, branch-enable × branch-taken |
 | Redirect | branch/JAL/JALR source and jump-target bins |
-| Instruction fetch | RV32I opcode classes and NOP/non-NOP fetches |
-| PC properties | alignment, `PC + 4` relation, and jump-target observation |
+| Instruction fetch | RV32I opcode classes, NOP vs. non-NOP fetches |
+| PC properties | alignment, `PC + 4` relation, jump-target observation |
 
-This is currently **block-level IF-stage coverage**, not a single aggregate
-coverage metric for the whole CPU. Additional coverage scaffolding exists for
-other blocks; extending it into a full-core coverage plan and reporting
-regression percentages is a planned verification milestone.
+This is currently block-level IF-stage coverage, not a single aggregate
+metric for the whole core. Extending this into a full-core coverage plan is
+listed under Next steps.
 
 ## Design decisions
 
-### Early branch resolution
+**Early branch resolution.** Branches resolve in ID rather than EX to reduce
+the control-hazard penalty. Since branch operands can come from instructions
+still in flight, ID includes its own forwarding logic (see waveform #2
+above) plus hazard detection for cases that can't be safely bypassed.
 
-Branches are resolved in ID to reduce the control penalty relative to resolving
-them in EX. Because branch operands can be produced by preceding instructions,
-the ID stage includes forwarding from EX/MEM sources and hazard logic for cases
-that cannot be safely bypassed immediately.
+**Memory-mapped UART.** The address decoder routes accesses at `0x4000_0000`
+to a UART model; a valid write prints the low byte to the console in
+simulation, making software bring-up observable without a separate
+peripheral model.
 
-### Memory-mapped UART
-
-The address decoder routes accesses in the `0x4000_0000` region to the UART
-model. In simulation, a valid UART write prints the low byte to the console.
-This makes software bring-up observable without a separate peripheral model.
-
-### Instruction memory image
-
-Simulation program images are word-oriented hexadecimal files. The instruction
-memory indexes words using `PC[11:2]`, matching the byte-addressed RISC-V PC
-with 32-bit instructions.
+**Instruction memory image.** Simulation program images are word-oriented
+hex files loaded via `$readmemh`. The instruction memory indexes words with
+`PC[11:2]`, matching the byte-addressed RISC-V PC with 32-bit instructions.
 
 ## Current scope and next steps
 
-This repository is deliberately transparent about its development status.
+**Implemented and demonstrated:**
+- Five-stage pipelined RTL integration, 37 RV32I instructions
+- Hazard detection, EX/ID forwarding, and early branch control
+- Simulation SRAM and UART models
+- Directed self-checking testbenches with waveform-level verification
+- Block-level functional coverage for the IF stage
 
-Implemented and demonstrated:
-
-- Five-stage pipelined RTL integration.
-- Core integer decode/datapath paths used by the directed tests.
-- Hazard detection, forwarding, and early branch control.
-- Simulation SRAM and UART models.
-
-Planned improvements:
-
-- Add a self-checking ISA regression suite and randomized instruction tests.
-- Validate remaining RV32I corner cases, alignment behavior, and illegal
-  instruction handling.
-- Expand data-memory tests for byte/halfword/word accesses and sign extension.
-- Add assertions and functional coverage for stalls, bypasses, and flushes.
-- Add an ELF-to-memory-image flow driven by the RISC-V GCC toolchain.
-- Add FPGA top-level integration, constraints, timing closure, and UART demo.
-- Add exception/interrupt and CSR support if the project evolves beyond RV32I
-  bring-up scope.
-
-## Skills demonstrated
-
-- SystemVerilog RTL design and modular hardware architecture.
-- Pipelined CPU microarchitecture and control-path design.
-- Hazard detection, bypass networks, and branch handling.
-- Memory-mapped peripheral design.
-- Verilator-based compilation, simulation, and debugging.
-- VCD/GTKWave waveform analysis.
-- Directed, self-checking testbench development.
-- Transaction-based functional coverage and cross-coverage planning.
-- Linux/WSL-based hardware development workflow.
+**Planned:**
+- Self-checking ISA regression suite with randomized instruction sequences
+- Coverage for remaining RV32I corner cases, alignment, illegal instructions
+- Full data-memory tests (byte/halfword/word access, sign extension)
+- Assertions and coverage for stalls, bypasses, and flushes across all stages
+- ELF-to-memory-image flow driven by the RISC-V GCC toolchain
+- FPGA top-level integration, timing closure, and physical UART demo
 
 ## Author
 
-**Minh**  
-Computer Engineering / Digital Design Portfolio Project
+**Minh** — Electronics & Telecommunications (IoT track) student, self-taught
+in RTL design and verification. Built solo, without a course framework, as
+preparation for RTL Design / Design Verification roles.
 
-If you are reviewing this project for an internship, start with the pipeline
-demo and the two waveform screenshots: they show the control mechanisms that
-are often hardest to validate in a basic CPU implementation.
+If you're reviewing this for an internship: start with the [pipeline demo
+waveforms](#waveform-evidence) above — they show the hazard and forwarding
+mechanisms that are usually the hardest part of a first CPU project to get
+right and to prove.
